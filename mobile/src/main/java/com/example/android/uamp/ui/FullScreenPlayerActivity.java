@@ -15,7 +15,9 @@
  */
 package com.example.android.uamp.ui;
 
+import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
@@ -43,6 +45,10 @@ import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
 
+import org.seachordsmen.ttrack.model.AudioMix;
+import org.seachordsmen.ttrack.model.StateBundleHelper;
+import org.seachordsmen.ttrack.model.TC;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -63,6 +69,10 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
     private ImageView mSkipPrev;
     private ImageView mSkipNext;
     private ImageView mPlayPause;
+    private ImageView mChangeMix;
+    private ImageView mSetBookmark;
+    private ImageView mChangeSpeed;
+    private View mBookmark;
     private TextView mStart;
     private TextView mEnd;
     private SeekBar mSeekbar;
@@ -73,6 +83,10 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
     private View mControllers;
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
+    private Drawable mAudioMixFullDrawable;
+    private Drawable mAudioMixStereoDrawable;
+    private Drawable mSetBookmarkDrawable;
+    private Drawable mClearBookmarkDrawable;
     private ImageView mBackgroundImage;
 
     private String mCurrentArtUrl;
@@ -134,9 +148,19 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
         mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_pause_white_48dp);
         mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_play_arrow_white_48dp);
+        // TODO make custom drawables
+        mAudioMixFullDrawable = ContextCompat.getDrawable(this, android.R.drawable.btn_plus);
+        mAudioMixStereoDrawable = ContextCompat.getDrawable(this, android.R.drawable.btn_minus);
+        mSetBookmarkDrawable = ContextCompat.getDrawable(this, android.R.drawable.arrow_down_float);
+        mClearBookmarkDrawable = ContextCompat.getDrawable(this, android.R.drawable.arrow_up_float);
+
         mPlayPause = (ImageView) findViewById(R.id.play_pause);
         mSkipNext = (ImageView) findViewById(R.id.next);
         mSkipPrev = (ImageView) findViewById(R.id.prev);
+        mChangeMix = (ImageView) findViewById(R.id.changeAudioMix);
+        mSetBookmark = (ImageView) findViewById(R.id.setBookmark);
+        mChangeSpeed = (ImageView) findViewById(R.id.changeSpeed);
+        mBookmark = findViewById(R.id.bookmark);
         mStart = (TextView) findViewById(R.id.startText);
         mEnd = (TextView) findViewById(R.id.endText);
         mSeekbar = (SeekBar) findViewById(R.id.seekBar1);
@@ -186,6 +210,10 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
             }
         });
 
+        mChangeMix.setOnClickListener(v -> sendCustomAction(TC.CUSTOM_ACTION_SWITCH_AUDIO_MIX));
+        mSetBookmark.setOnClickListener(v -> sendCustomAction(TC.CUSTOM_ACTION_SET_BOOKMARK));
+        mChangeSpeed.setOnClickListener(v -> sendCustomAction(TC.CUSTOM_ACTION_CHANGE_SPEED));
+
         mSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -211,6 +239,14 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
 
         mMediaBrowser = new MediaBrowserCompat(this,
             new ComponentName(this, MusicService.class), mConnectionCallback, null);
+    }
+
+    private void sendCustomAction(String action) {
+        PlaybackStateCompat state = MediaControllerCompat.getMediaController(FullScreenPlayerActivity.this).getPlaybackState();
+        if (state != null) {
+            MediaControllerCompat.TransportControls controls = MediaControllerCompat.getMediaController(FullScreenPlayerActivity.this).getTransportControls();
+            controls.sendCustomAction(action, null);
+        }
     }
 
     private void connectToSession(MediaSessionCompat.Token token) throws RemoteException {
@@ -293,6 +329,18 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
         mExecutorService.shutdown();
     }
 
+    public static void startFullScreenActivity(Activity sourceActivity) {
+        Intent intent = new Intent(sourceActivity, FullScreenPlayerActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        MediaControllerCompat controller = MediaControllerCompat.getMediaController(sourceActivity);
+        MediaMetadataCompat metadata = controller.getMetadata();
+        if (metadata != null) {
+            intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                    metadata.getDescription());
+        }
+        sourceActivity.startActivity(intent);
+    }
+
     private void fetchImageAsync(@NonNull MediaDescriptionCompat description) {
         if (description.getIconUri() == null) {
             return;
@@ -353,6 +401,31 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
             String line3Text = castName == null ? "" : getResources()
                         .getString(R.string.casting_to_device, castName);
             mLine3.setText(line3Text);
+        }
+
+        StateBundleHelper bundleHelper = new StateBundleHelper(state.getExtras());
+        AudioMix audioMix = bundleHelper.getAudioMix();
+        if (AudioMix.FULL_MIX.equals(audioMix)) {
+            mChangeMix.setBackground(mAudioMixFullDrawable);
+        } else {
+            mChangeMix.setBackground(mAudioMixStereoDrawable);
+        }
+
+        Long bookmarkPosition = bundleHelper.getBookmarkPosition();
+        if (mSeekbar.getMax() <= 0) {
+            mSetBookmark.setImageAlpha(128);
+            mBookmark.setVisibility(View.GONE);
+        } else {
+            if (bookmarkPosition == null) {
+                mSetBookmark.setBackground(mSetBookmarkDrawable);
+                mBookmark.setVisibility(View.GONE);
+            } else {
+                mSetBookmark.setBackground(mClearBookmarkDrawable);
+                int width = mSeekbar.getWidth() - mSeekbar.getPaddingRight() - mSeekbar.getPaddingLeft();
+                int pos = mSeekbar.getPaddingLeft() + (width * bookmarkPosition.intValue() / mSeekbar.getMax());
+                mBookmark.setTranslationX(pos);
+                mBookmark.setVisibility(VISIBLE);
+            }
         }
 
         switch (state.getState()) {

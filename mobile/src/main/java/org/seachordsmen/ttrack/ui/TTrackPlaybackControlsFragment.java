@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.android.uamp.ui;
+package org.seachordsmen.ttrack.ui;
 
 import android.app.Fragment;
 import android.content.Intent;
@@ -36,14 +36,16 @@ import android.widget.Toast;
 import com.example.android.uamp.AlbumArtCache;
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
+import com.example.android.uamp.ui.FullScreenPlayerActivity;
+import com.example.android.uamp.ui.MusicPlayerActivity;
 import com.example.android.uamp.utils.LogHelper;
 
 /**
  * A class that shows the Media Queue to the user.
  */
-public class PlaybackControlsFragment extends Fragment {
+public class TTrackPlaybackControlsFragment extends Fragment {
 
-    private static final String TAG = LogHelper.makeLogTag(PlaybackControlsFragment.class);
+    private static final String TAG = LogHelper.makeLogTag(TTrackPlaybackControlsFragment.class);
 
     private ImageButton mPlayPause;
     private TextView mTitle;
@@ -57,7 +59,7 @@ public class PlaybackControlsFragment extends Fragment {
         @Override
         public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
             LogHelper.d(TAG, "Received playback state change to state ", state.getState());
-            PlaybackControlsFragment.this.onPlaybackStateChanged(state);
+            TTrackPlaybackControlsFragment.this.onPlaybackStateChanged(state);
         }
 
         @Override
@@ -68,7 +70,7 @@ public class PlaybackControlsFragment extends Fragment {
             LogHelper.d(TAG, "Received metadata state change to mediaId=",
                     metadata.getDescription().getMediaId(),
                     " song=", metadata.getDescription().getTitle());
-            PlaybackControlsFragment.this.onMetadataChanged(metadata);
+            TTrackPlaybackControlsFragment.this.onMetadataChanged(metadata);
         }
     };
 
@@ -88,7 +90,15 @@ public class PlaybackControlsFragment extends Fragment {
         rootView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FullScreenPlayerActivity.startFullScreenActivity(getActivity());
+                Intent intent = new Intent(getActivity(), FullScreenPlayerActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                MediaControllerCompat controller = MediaControllerCompat.getMediaController(getActivity());
+                MediaMetadataCompat metadata = controller.getMetadata();
+                if (metadata != null) {
+                    intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
+                        metadata.getDescription());
+                }
+                startActivity(intent);
             }
         });
         return rootView;

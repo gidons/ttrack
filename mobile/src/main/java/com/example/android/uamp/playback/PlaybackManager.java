@@ -23,12 +23,18 @@ import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.util.Log;
 
 import com.example.android.uamp.R;
 import com.example.android.uamp.model.MusicProvider;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 import com.example.android.uamp.utils.WearHelper;
+import com.google.android.exoplayer2.PlaybackParameters;
+
+import org.seachordsmen.ttrack.model.AudioMix;
+import org.seachordsmen.ttrack.model.StateBundleHelper;
+import org.seachordsmen.ttrack.model.TC;
 
 /**
  * Manage the interactions among the container service, the queue manager and the actual playback.
@@ -36,8 +42,7 @@ import com.example.android.uamp.utils.WearHelper;
 public class PlaybackManager implements Playback.Callback {
 
     private static final String TAG = LogHelper.makeLogTag(PlaybackManager.class);
-    // Action to thumbs up a media item
-    private static final String CUSTOM_ACTION_THUMBS_UP = "com.example.android.uamp.THUMBS_UP";
+    public static final int SKIP_BACK_GRACE_PERIOD_MS = 1000; // one second
 
     private MusicProvider mMusicProvider;
     private QueueManager mQueueManager;
@@ -104,6 +109,52 @@ public class PlaybackManager implements Playback.Callback {
     }
 
 
+    public void handleAudioMixRequest(AudioMix requestedMix) {
+        LogHelper.d(TAG, "handleAudioMixRequest: mState=", mPlayback.getState(), " requestedMix=", requestedMix);
+        final AudioMix newMix;
+        if (requestedMix == null) {
+            AudioMix audioMix = mPlayback.getCurrentAudioMix();
+            if (AudioMix.ALL_RIGHT.equals(audioMix)) {
+                newMix = AudioMix.ALL_LEFT;
+            } else {
+                newMix = AudioMix.ALL_RIGHT;
+            }
+        } else {
+            newMix = requestedMix;
+        }
+        LogHelper.i(TAG, "setting audioMix to ", newMix);
+        mPlayback.setAudioMix(newMix);
+        updatePlaybackState(null);
+    }
+
+    public void handleSetBookmarkRequest() {
+        Long currentBookmarkPos = mPlayback.getCurrentBookmarkPosition();
+        Long newPos = currentBookmarkPos == null ? mPlayback.getCurrentStreamPosition() : null;
+        LogHelper.i(TAG, "setting bookmark to ", newPos);
+        mPlayback.setBookmarkPosition(newPos);
+        updatePlaybackState(null);
+    }
+
+    public void handleChangeSpeedRequest(Float requestedSpeed) {
+        PlaybackParameters currentParams = mPlayback.getPlaybackParameters();
+        if (currentParams == null) {
+            currentParams = PlaybackParameters.DEFAULT;
+        }
+        final float newSpeed;
+        if (requestedSpeed != null) {
+            newSpeed = requestedSpeed;
+        } else {
+            if (currentParams.speed > 0.75f) {
+                newSpeed = 0.75f;
+            } else {
+                newSpeed = 1.0f;
+            }
+        }
+        LogHelper.i(TAG, "setting speed to ", newSpeed);
+        mPlayback.setPlaybackParameters(new PlaybackParameters(newSpeed, currentParams.pitch));
+        updatePlaybackState(null);
+    }
+
     /**
      * Update the current media player state, optionally showing an error message.
      *
@@ -120,10 +171,11 @@ public class PlaybackManager implements Playback.Callback {
         PlaybackStateCompat.Builder stateBuilder = new PlaybackStateCompat.Builder()
                 .setActions(getAvailableActions());
 
-        setCustomAction(stateBuilder);
+        addFavoriteAction(stateBuilder);
+        addTTrackActions(stateBuilder);
         int state = mPlayback.getState();
 
-        // If there is an error message, send it to the playback state:
+        // If there is an error message, sendprivatre  it to the playback state:
         if (error != null) {
             // Error states are really only supposed to be used for errors that cause playback to
             // stop unexpectedly and persist until the user takes action to fix it.
@@ -139,6 +191,11 @@ public class PlaybackManager implements Playback.Callback {
             stateBuilder.setActiveQueueItemId(currentMusic.getQueueId());
         }
 
+        StateBundleHelper bundleHelper = new StateBundleHelper();
+        bundleHelper.setAudioMix(mPlayback.getCurrentAudioMix());
+        bundleHelper.setBookmarkPosition(mPlayback.getCurrentBookmarkPosition());
+        stateBuilder.setExtras(bundleHelper.getBundle());
+
         mServiceCallback.onPlaybackStateUpdated(stateBuilder.build());
 
         if (state == PlaybackStateCompat.STATE_PLAYING ||
@@ -147,7 +204,7 @@ public class PlaybackManager implements Playback.Callback {
         }
     }
 
-    private void setCustomAction(PlaybackStateCompat.Builder stateBuilder) {
+    private void addFavoriteAction(PlaybackStateCompat.Builder stateBuilder) {
         MediaSessionCompat.QueueItem currentMusic = mQueueManager.getCurrentMusic();
         if (currentMusic == null) {
             return;
@@ -165,8 +222,20 @@ public class PlaybackManager implements Playback.Callback {
         Bundle customActionExtras = new Bundle();
         WearHelper.setShowCustomActionOnWear(customActionExtras, true);
         stateBuilder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
-                CUSTOM_ACTION_THUMBS_UP, mResources.getString(R.string.favorite), favoriteIcon)
+                TC.CUSTOM_ACTION_THUMBS_UP, mResources.getString(R.string.favorite), favoriteIcon)
                 .setExtras(customActionExtras)
+                .build());
+    }
+
+    private void addTTrackActions(PlaybackStateCompat.Builder stateBuilder) {
+        stateBuilder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                TC.CUSTOM_ACTION_SWITCH_AUDIO_MIX, mResources.getString(R.string.audioMix), android.R.drawable.btn_minus)
+                .build());
+        stateBuilder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                TC.CUSTOM_ACTION_SET_BOOKMARK, mResources.getString(R.string.setBookmark), android.R.drawable.arrow_down_float)
+                .build());
+        stateBuilder.addCustomAction(new PlaybackStateCompat.CustomAction.Builder(
+                TC.CUSTOM_ACTION_CHANGE_SPEED, mResources.getString(R.string.changeSpeed), android.R.drawable.arrow_down_float)
                 .build());
     }
 
@@ -317,34 +386,67 @@ public class PlaybackManager implements Playback.Callback {
 
         @Override
         public void onSkipToPrevious() {
-            if (mQueueManager.skipQueuePosition(-1)) {
-                handlePlayRequest();
+            Long bookmarkPosition = mPlayback.getCurrentBookmarkPosition();
+            long streamPosition = mPlayback.getCurrentStreamPosition();
+            if (bookmarkPosition != null && streamPosition > bookmarkPosition + SKIP_BACK_GRACE_PERIOD_MS) {
+                // we're at least (grace-period) ahead of the bookmark, so skip back to the bookmark
+                mPlayback.seekTo(bookmarkPosition);
+            } else if (streamPosition > SKIP_BACK_GRACE_PERIOD_MS) {
+                // we're at least (grace-period) into the track; skip back to beginning
+                mPlayback.seekTo(0);
             } else {
-                handleStopRequest("Cannot skip");
+                if (mQueueManager.skipQueuePosition(-1)) {
+                    handlePlayRequest();
+                } else {
+                    handleStopRequest("Cannot skip");
+                }
+                mQueueManager.updateMetadata();
             }
-            mQueueManager.updateMetadata();
         }
 
         @Override
         public void onCustomAction(@NonNull String action, Bundle extras) {
-            if (CUSTOM_ACTION_THUMBS_UP.equals(action)) {
-                LogHelper.i(TAG, "onCustomAction: favorite for current track");
-                MediaSessionCompat.QueueItem currentMusic = mQueueManager.getCurrentMusic();
-                if (currentMusic != null) {
-                    String mediaId = currentMusic.getDescription().getMediaId();
-                    if (mediaId != null) {
-                        String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
-                        mMusicProvider.setFavorite(musicId, !mMusicProvider.isFavorite(musicId));
-                    }
-                }
-                // playback state needs to be updated because the "Favorite" icon on the
-                // custom action will change to reflect the new favorite state.
-                updatePlaybackState(null);
-            } else {
-                LogHelper.e(TAG, "Unsupported action: ", action);
+            StateBundleHelper bundleHelper = new StateBundleHelper(extras);
+            switch(action) {
+                case TC.CUSTOM_ACTION_THUMBS_UP: onThumbsUp(); break;
+                case TC.CUSTOM_ACTION_SWITCH_AUDIO_MIX: onSetAudioMix(bundleHelper); break;
+                case TC.CUSTOM_ACTION_SET_BOOKMARK: onSetBookmark(bundleHelper); break;
+                case TC.CUSTOM_ACTION_CHANGE_SPEED: onChangeSpeed(bundleHelper); break;
+                default: LogHelper.e(TAG, "Unsupported action: ", action);
             }
         }
 
+        private void onSetAudioMix(StateBundleHelper bundleHelper) {
+            Log.i(TAG, "onSetAudioMix called");
+            handleAudioMixRequest(bundleHelper.getAudioMix());
+        }
+
+        private void onSetBookmark(StateBundleHelper bundleHelper) {
+            Log.i(TAG, "onSetBookmark called");
+            handleSetBookmarkRequest();
+        }
+
+        private void onChangeSpeed(StateBundleHelper bundleHelper) {
+            Log.i(TAG, "onChangeSpeed called");
+            handleChangeSpeedRequest(bundleHelper.getPlaybackSpeed());
+        }
+
+        private void onThumbsUp() {
+            LogHelper.i(TAG, "onCustomAction: favorite for current track");
+            MediaSessionCompat.QueueItem currentMusic = mQueueManager.getCurrentMusic();
+            if (currentMusic != null) {
+                String mediaId = currentMusic.getDescription().getMediaId();
+                if (mediaId != null) {
+                    String musicId = MediaIDHelper.extractMusicIDFromMediaID(mediaId);
+                    mMusicProvider.setFavorite(musicId, !mMusicProvider.isFavorite(musicId));
+                }
+            }
+            // playback state needs to be updated because the "Favorite" icon on the
+            // custom action will change to reflect the new favorite state.
+            updatePlaybackState(null);
+        }
+
+        
         /**
          * Handle free and contextual searches.
          * <p/>

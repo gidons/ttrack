@@ -56,4 +56,10 @@
     <!-- Notificaiton Channel -->
     <string name="notification_channel">UAMP_Channel_ID</string>
     <string name="notification_channel_description">Channel ID for UAMP</string>
+    <string name="audioMix">Audio Mix</string>
+    <string name="audioMix_button_stereo">ST</string>
+    <string name="audioMix_button_mono">ST</string>
+    <string name="audioMix_button_missing">ST</string>
+    <string name="setBookmark"><![CDATA[>|<]]></string>
+    <string name="changeSpeed">Change speed</string>
 </resources>

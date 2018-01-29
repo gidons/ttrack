@@ -85,6 +85,53 @@ limitations under the License.
             android:visibility="invisible">
 
             <RelativeLayout
+                android:id="@+id/additionalControlsWrapper"
+                android:layout_width="fill_parent"
+                android:layout_height="@dimen/additionalControls_height">
+
+                <LinearLayout
+                    android:id="@+id/additionalControls"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_centerInParent="true"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:id="@+id/changeAudioMix"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@android:drawable/btn_minus"
+                        />
+
+                    <android.support.v4.widget.Space
+                        android:layout_width="@dimen/additionalControls_button_width"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="@dimen/playback_controls_padding"
+                        android:layout_marginRight="@dimen/playback_controls_padding"/>
+
+                    <ImageView
+                        android:id="@+id/setBookmark"
+                        android:layout_width="wrap_content"
+                        android:layout_height="fill_parent"
+                        android:background="@android:drawable/arrow_down_float" />
+
+                    <android.support.v4.widget.Space
+                        android:layout_width="@dimen/additionalControls_button_width"
+                        android:layout_height="match_parent"
+                        android:layout_marginLeft="@dimen/playback_controls_padding"
+                        android:layout_marginRight="@dimen/playback_controls_padding"/>
+
+                    <ImageView
+                        android:id="@+id/changeSpeed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="fill_parent"
+                        android:background="@android:drawable/ic_media_ff" />
+
+                </LinearLayout>
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="48dp">
 
@@ -108,6 +155,15 @@ limitations under the License.
                     android:layout_marginRight="5dp"
                     android:layout_toStartOf="@+id/endText"
                     android:layout_toEndOf="@+id/startText" />
+
+                <TextView
+                    android:id="@+id/bookmark"
+                    android:layout_width="5dp"
+                    android:layout_height="fill_parent"
+                    android:background="@color/white"
+                    android:visibility="gone"
+                    android:alpha="0.5"
+                    android:layout_toStartOf="@id/seekBar1"/>
 
                 <TextView
                     android:id="@+id/endText"

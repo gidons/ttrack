@@ -34,6 +34,8 @@ import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.NetworkHelper;
 import com.example.android.uamp.utils.ResourceHelper;
 
+import org.seachordsmen.ttrack.ui.TTrackPlaybackControlsFragment;
+
 /**
  * Base activity for activities that need to show a playback control fragment when media is playing.
  */
@@ -42,7 +44,7 @@ public abstract class BaseActivity extends ActionBarCastActivity implements Medi
     private static final String TAG = LogHelper.makeLogTag(BaseActivity.class);
 
     private MediaBrowserCompat mMediaBrowser;
-    private PlaybackControlsFragment mControlsFragment;
+    private TTrackPlaybackControlsFragment mControlsFragment;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,7 +75,7 @@ public abstract class BaseActivity extends ActionBarCastActivity implements Medi
         super.onStart();
         LogHelper.d(TAG, "Activity onStart");
 
-        mControlsFragment = (PlaybackControlsFragment) getFragmentManager()
+        mControlsFragment = (TTrackPlaybackControlsFragment) getFragmentManager()
             .findFragmentById(R.id.fragment_playback_controls);
         if (mControlsFragment == null) {
             throw new IllegalStateException("Mising fragment with id 'controls'. Cannot continue.");

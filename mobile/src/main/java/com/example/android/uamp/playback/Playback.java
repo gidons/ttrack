@@ -16,6 +16,9 @@
 package com.example.android.uamp.playback;
 
 import com.example.android.uamp.MusicService;
+import com.google.android.exoplayer2.PlaybackParameters;
+
+import org.seachordsmen.ttrack.model.AudioMix;
 
 import static android.support.v4.media.session.MediaSessionCompat.QueueItem;
 
@@ -79,6 +82,19 @@ public interface Playback {
     void setCurrentMediaId(String mediaId);
 
     String getCurrentMediaId();
+
+    // ENHANCED CONTROLS
+    default void setAudioMix(AudioMix audioMix) {}
+
+    default AudioMix getCurrentAudioMix() { return null; }
+
+    default void setBookmarkPosition(Long newPosition) {}
+
+    default Long getCurrentBookmarkPosition() { return null; }
+
+    default void setPlaybackParameters(PlaybackParameters playbackParameters) {}
+
+    default PlaybackParameters getPlaybackParameters() { return null; }
 
     interface Callback {
         /**

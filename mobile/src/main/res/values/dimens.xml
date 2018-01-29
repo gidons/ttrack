@@ -24,6 +24,9 @@
     <dimen name="playback_controls_albumart_size">64dp</dimen>
     <dimen name="playback_controls_padding">8dp</dimen>
 
+    <dimen name="additionalControls_height">36dp</dimen>
+    <dimen name="additionalControls_button_width">48dp</dimen>
+
     <!-- navigation drawer -->
     <dimen name="drawer_item_icon_margin_end">32dp</dimen>
     <dimen name="drawer_item_height">48dp</dimen>

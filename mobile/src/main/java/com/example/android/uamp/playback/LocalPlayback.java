@@ -32,11 +32,10 @@ import com.example.android.uamp.model.MusicProviderSource;
 import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 import com.google.android.exoplayer2.DefaultLoadControl;
+import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.PlaybackParameters;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
@@ -49,6 +48,10 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+
+import org.seachordsmen.ttrack.model.AudioMix;
+import org.seachordsmen.ttrack.playback.TTrackExoPlayer;
+import org.seachordsmen.ttrack.playback.TTrackRendererFactory;
 
 import static android.support.v4.media.session.MediaSessionCompat.QueueItem;
 import static com.google.android.exoplayer2.C.CONTENT_TYPE_MUSIC;
@@ -85,7 +88,8 @@ public final class LocalPlayback implements Playback {
 
     private int mCurrentAudioFocusState = AUDIO_NO_FOCUS_NO_DUCK;
     private final AudioManager mAudioManager;
-    private SimpleExoPlayer mExoPlayer;
+    private TTrackExoPlayer mExoPlayer;
+    //private TTrackPlayer mExoPlayer;
     private final ExoPlayerEventListener mEventListener = new ExoPlayerEventListener();
 
     // Whether to return STATE_NONE or STATE_STOPPED when mExoPlayer is null;
@@ -207,9 +211,9 @@ public final class LocalPlayback implements Playback {
             }
 
             if (mExoPlayer == null) {
-                mExoPlayer =
-                        ExoPlayerFactory.newSimpleInstance(
-                                mContext, new DefaultTrackSelector(), new DefaultLoadControl());
+                DefaultRenderersFactory renderersFactory = new TTrackRendererFactory(mContext);
+                mExoPlayer = new TTrackExoPlayer(renderersFactory, new DefaultTrackSelector(), new DefaultLoadControl());
+                //mExoPlayer = new TTrackPlayer(renderersFactory);
                 mExoPlayer.addListener(mEventListener);
             }
 
@@ -266,6 +270,45 @@ public final class LocalPlayback implements Playback {
             registerAudioNoisyReceiver();
             mExoPlayer.seekTo(position);
         }
+    }
+
+    @Override
+    public void setAudioMix(AudioMix audioMix) {
+        LogHelper.d(TAG, "setAudioMix called with ", audioMix);
+        if (mExoPlayer != null) {
+            mExoPlayer.setAudioMix(audioMix);
+        }
+    }
+
+    @Override
+    public AudioMix getCurrentAudioMix() {
+        return (mExoPlayer != null) ? mExoPlayer.getAudioMix() : null;
+    }
+
+    @Override
+    public void setBookmarkPosition(Long newPosition) {
+        if (mExoPlayer != null) {
+            LogHelper.d(TAG, "setBookmarkPosition called with position: ", newPosition);
+            mExoPlayer.setBookmarkPosition(newPosition);
+        }
+    }
+
+    @Override
+    public Long getCurrentBookmarkPosition() {
+        return (mExoPlayer != null) ? mExoPlayer.getBookmarkPosition() : null;
+    }
+
+    @Override
+    public void setPlaybackParameters(PlaybackParameters playbackParameters) {
+        if (mExoPlayer != null) {
+            LogHelper.d(TAG, "setPlaybackParameters called with pitch: ", playbackParameters.pitch, " and speed: ", playbackParameters.speed);
+            mExoPlayer.setPlaybackParameters(playbackParameters);
+        }
+    }
+
+    @Override
+    public PlaybackParameters getPlaybackParameters() {
+        return (mExoPlayer != null) ? mExoPlayer.getPlaybackParameters() : null;
     }
 
     @Override

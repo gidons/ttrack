@@ -52,6 +52,8 @@ import com.google.android.gms.cast.framework.SessionManagerListener;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 
+import org.seachordsmen.ttrack.music.LocalTestMusicProviderSource;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -161,7 +163,7 @@ public class MusicService extends MediaBrowserServiceCompat implements
         super.onCreate();
         LogHelper.d(TAG, "onCreate");
 
-        mMusicProvider = new MusicProvider();
+        mMusicProvider = new MusicProvider(new LocalTestMusicProviderSource());
 
         // To make the app more responsive, fetch and cache catalog information now.
         // This can help improve the response time in the method
