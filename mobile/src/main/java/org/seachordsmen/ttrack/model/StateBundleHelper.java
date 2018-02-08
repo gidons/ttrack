@@ -29,8 +29,8 @@ public class StateBundleHelper {
 
     public void setAudioMix(AudioMix audioMix) {
         if (audioMix != null) {
-            bundle.putFloat(TC.BUNDLE_EXTRA_LEFT_MIX, audioMix.leftMix);
-            bundle.putFloat(TC.BUNDLE_EXTRA_RIGHT_MIX, audioMix.rightMix);
+            bundle.putFloat(TC.BUNDLE_EXTRA_LEFT_MIX, audioMix.getLeftMix());
+            bundle.putFloat(TC.BUNDLE_EXTRA_RIGHT_MIX, audioMix.getRightMix());
         }
     }
 

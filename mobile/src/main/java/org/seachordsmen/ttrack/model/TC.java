@@ -22,4 +22,6 @@ public interface TC {
     // Action to set a bookmark at the current play position
     String CUSTOM_ACTION_SET_BOOKMARK = "com.example.android.uamp.SET_BOOKMARK";
     String CUSTOM_ACTION_CHANGE_SPEED = "com.example.android.uamp.CHANGE_SPEED";
+
+    String METADATA_KEY_PLAYLIST_ID = "org.seachordsmen.ttrack.media.metadata.PLAYLIST_ID";
 }

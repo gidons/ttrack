@@ -31,10 +31,14 @@ import com.example.android.uamp.utils.LogHelper;
 import com.example.android.uamp.utils.MediaIDHelper;
 import com.example.android.uamp.utils.WearHelper;
 import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.common.collect.ImmutableList;
 
 import org.seachordsmen.ttrack.model.AudioMix;
 import org.seachordsmen.ttrack.model.StateBundleHelper;
 import org.seachordsmen.ttrack.model.TC;
+
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Manage the interactions among the container service, the queue manager and the actual playback.
@@ -43,6 +47,10 @@ public class PlaybackManager implements Playback.Callback {
 
     private static final String TAG = LogHelper.makeLogTag(PlaybackManager.class);
     public static final int SKIP_BACK_GRACE_PERIOD_MS = 1000; // one second
+
+    public static final List<AudioMix> AUDIO_MIX_ORDER = ImmutableList.of(
+            AudioMix.UNCHANGED, AudioMix.ALL_LEFT, AudioMix.ALL_RIGHT, AudioMix.FULL_MIX
+    );
 
     private MusicProvider mMusicProvider;
     private QueueManager mQueueManager;
@@ -108,23 +116,31 @@ public class PlaybackManager implements Playback.Callback {
         updatePlaybackState(withError);
     }
 
-
     public void handleAudioMixRequest(AudioMix requestedMix) {
         LogHelper.d(TAG, "handleAudioMixRequest: mState=", mPlayback.getState(), " requestedMix=", requestedMix);
         final AudioMix newMix;
         if (requestedMix == null) {
-            AudioMix audioMix = mPlayback.getCurrentAudioMix();
-            if (AudioMix.ALL_RIGHT.equals(audioMix)) {
-                newMix = AudioMix.ALL_LEFT;
-            } else {
-                newMix = AudioMix.ALL_RIGHT;
-            }
+            AudioMix currentAudioMix = mPlayback.getCurrentAudioMix();
+            LogHelper.i(TAG, "currentAudioMix = ", currentAudioMix);
+            newMix = getNextAudioMixInOrder(currentAudioMix);
         } else {
             newMix = requestedMix;
         }
         LogHelper.i(TAG, "setting audioMix to ", newMix);
         mPlayback.setAudioMix(newMix);
         updatePlaybackState(null);
+    }
+
+    private AudioMix getNextAudioMixInOrder(AudioMix audioMix) {
+        AudioMix newMix;Iterator<AudioMix> iterator = AUDIO_MIX_ORDER.iterator();
+        while (iterator.hasNext() && iterator.next() != audioMix)
+            ;
+        if (iterator.hasNext()) {
+            newMix = iterator.next();
+        } else {
+            newMix = AUDIO_MIX_ORDER.get(0);
+        }
+        return newMix;
     }
 
     public void handleSetBookmarkRequest() {
@@ -329,7 +345,6 @@ public class PlaybackManager implements Playback.Callback {
                 LogHelper.d(TAG, "Default called. Old state is ", oldState);
         }
     }
-
 
     private class MediaSessionCallback extends MediaSessionCompat.Callback {
         @Override

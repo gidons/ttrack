@@ -1,0 +1,51 @@
+Features
+---------
+Basic functionality
++ Get player running as-is
++ Play specific location from SD card
+
+Proofs-of-concept
++ Add an AudioProcessor to the player's processor chain
++ Add a random button to the player control panel
+
+P1
+- Add speed controls
+  + Hook up setPlaybackParameters
+  - Simple speed control: switch between 0.75 and 1.0 (WIP)
+  - Nice button images
+- Add mix control
+  + Implement mixing AudioProcessor
+  + Hook up setAudioMix
+  - Rotate between Stereo, Missing, Solo, Full
+  - Nice button images
+- Add bookmark control
+  + Implement
+  - Nice button images
+- Jump directly into full-screen activity
+- Hook up to Android's Play audio tracks DB
+
+P2
+- Fancy speed control: slide between 0.66 and 1.33
+- Mix two two-voice tracks
+- Auto-download from Groupanizer
+- Auto-generate playlists
+- Persist playback settings (mix, speed, bookmark) for tracks
+
+P3
+- Freeze chord
+- Synchronoized lyrics
+- Synchronized sheet music
+
+
+TODO
+---------
+
+
+Improvements
+-------------
+- Improve speed control:
+  - Import new version of Sonic; probably means adding an AudioProcessor and ignoring the build-in SonicProcessor
+  - Increase sampling frequency during pitch determination
+  - Set useChordPitch=true
+  - Try to always use the single-voice channel for pitch determination
+  - Try to use both channels for pitch determination

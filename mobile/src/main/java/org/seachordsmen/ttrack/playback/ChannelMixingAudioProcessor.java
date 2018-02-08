@@ -112,8 +112,8 @@ class ChannelMixingAudioProcessor implements AudioProcessor {
         for (int i = position; i < limit; i += 4) {
             short l = inputBuffer.getShort();
             short r = inputBuffer.getShort();
-            short mixedL = (short) (audioMix.leftMix * l + (1 - audioMix.leftMix) * r);
-            short mixedR = (short) (audioMix.rightMix * l + (1 - audioMix.rightMix) * r);
+            short mixedL = (short) (audioMix.getLeftMix() * l + (1 - audioMix.getLeftMix()) * r);
+            short mixedR = (short) (audioMix.getRightMix() * l + (1 - audioMix.getRightMix()) * r);
             outputBuffer.putShort(mixedL);
             outputBuffer.putShort(mixedR);
         }

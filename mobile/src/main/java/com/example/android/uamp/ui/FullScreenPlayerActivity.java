@@ -17,7 +17,6 @@ package com.example.android.uamp.ui;
 
 import android.app.Activity;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
@@ -34,6 +33,7 @@ import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.format.DateUtils;
+import android.util.Pair;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -44,15 +44,20 @@ import com.example.android.uamp.AlbumArtCache;
 import com.example.android.uamp.MusicService;
 import com.example.android.uamp.R;
 import com.example.android.uamp.utils.LogHelper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import org.seachordsmen.ttrack.model.AudioMix;
 import org.seachordsmen.ttrack.model.StateBundleHelper;
 import org.seachordsmen.ttrack.model.TC;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
@@ -83,8 +88,11 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
     private View mControllers;
     private Drawable mPauseDrawable;
     private Drawable mPlayDrawable;
+    private Drawable mAudioMixUnknownDrawable;
     private Drawable mAudioMixFullDrawable;
     private Drawable mAudioMixStereoDrawable;
+    private Drawable mAudioMixMonoDrawable;
+    private Drawable mAudioMixMissingDrawable;
     private Drawable mSetBookmarkDrawable;
     private Drawable mClearBookmarkDrawable;
     private ImageView mBackgroundImage;
@@ -92,6 +100,14 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
     private String mCurrentArtUrl;
     private final Handler mHandler = new Handler();
     private MediaBrowserCompat mMediaBrowser;
+
+    private static final Map<AudioMix, Integer> AUDIO_MIX_DRAWABLE_IDS = ImmutableMap.of(
+            AudioMix.UNCHANGED, R.drawable.ic_stereo_left,
+            AudioMix.ALL_LEFT, R.drawable.ic_mono,
+            AudioMix.ALL_RIGHT, R.drawable.ic_missing,
+            AudioMix.FULL_MIX, R.drawable.ic_full_mix
+    );
+    private Map<AudioMix, Drawable> mAudioMixDrawables;
 
     private final Runnable mUpdateProgressTask = new Runnable() {
         @Override
@@ -148,11 +164,18 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
         mBackgroundImage = (ImageView) findViewById(R.id.background_image);
         mPauseDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_pause_white_48dp);
         mPlayDrawable = ContextCompat.getDrawable(this, R.drawable.uamp_ic_play_arrow_white_48dp);
-        // TODO make custom drawables
-        mAudioMixFullDrawable = ContextCompat.getDrawable(this, android.R.drawable.btn_plus);
-        mAudioMixStereoDrawable = ContextCompat.getDrawable(this, android.R.drawable.btn_minus);
-        mSetBookmarkDrawable = ContextCompat.getDrawable(this, android.R.drawable.arrow_down_float);
-        mClearBookmarkDrawable = ContextCompat.getDrawable(this, android.R.drawable.arrow_up_float);
+        mAudioMixUnknownDrawable = ContextCompat.getDrawable(this, R.drawable.ic_unknown_mix);
+        mAudioMixDrawables = AUDIO_MIX_DRAWABLE_IDS.entrySet().stream()
+                .map(p -> Pair.create(p.getKey(), ContextCompat.getDrawable(this, p.getValue())))
+                .collect(Collectors.toMap(p -> p.first, p -> p.second));
+/*
+        mAudioMixFullDrawable = ContextCompat.getDrawable(this, R.drawable.ic_full_mix);
+        mAudioMixMissingDrawable = ContextCompat.getDrawable(this, R.drawable.ic_missing);
+        mAudioMixStereoDrawable = ContextCompat.getDrawable(this, R.drawable.ic_stereo_left);
+        mAudioMixMonoDrawable = ContextCompat.getDrawable(this, R.drawable.ic_mono);
+        */
+        mSetBookmarkDrawable = ContextCompat.getDrawable(this, R.drawable.ic_set_bookmark);
+        mClearBookmarkDrawable = ContextCompat.getDrawable(this, R.drawable.ic_clear_bookmark);
 
         mPlayPause = (ImageView) findViewById(R.id.play_pause);
         mSkipNext = (ImageView) findViewById(R.id.next);
@@ -404,12 +427,12 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
         }
 
         StateBundleHelper bundleHelper = new StateBundleHelper(state.getExtras());
+
         AudioMix audioMix = bundleHelper.getAudioMix();
-        if (AudioMix.FULL_MIX.equals(audioMix)) {
-            mChangeMix.setBackground(mAudioMixFullDrawable);
-        } else {
-            mChangeMix.setBackground(mAudioMixStereoDrawable);
-        }
+        LogHelper.i(TAG, "Current audioMix is ", audioMix);
+        Drawable drawable = mAudioMixDrawables.getOrDefault(audioMix, mAudioMixUnknownDrawable);
+        LogHelper.i(TAG, "Setting mChangeMix background to ", drawable.toString());
+        mChangeMix.setImageDrawable(drawable);
 
         Long bookmarkPosition = bundleHelper.getBookmarkPosition();
         if (mSeekbar.getMax() <= 0) {
@@ -417,16 +440,20 @@ public class FullScreenPlayerActivity extends ActionBarCastActivity {
             mBookmark.setVisibility(View.GONE);
         } else {
             if (bookmarkPosition == null) {
-                mSetBookmark.setBackground(mSetBookmarkDrawable);
+                mSetBookmark.setImageDrawable(mSetBookmarkDrawable);
                 mBookmark.setVisibility(View.GONE);
             } else {
-                mSetBookmark.setBackground(mClearBookmarkDrawable);
+                mSetBookmark.setImageDrawable(mClearBookmarkDrawable);
                 int width = mSeekbar.getWidth() - mSeekbar.getPaddingRight() - mSeekbar.getPaddingLeft();
                 int pos = mSeekbar.getPaddingLeft() + (width * bookmarkPosition.intValue() / mSeekbar.getMax());
                 mBookmark.setTranslationX(pos);
                 mBookmark.setVisibility(VISIBLE);
             }
         }
+
+        Float speed = bundleHelper.getPlaybackSpeed();
+        if (speed == null) { speed = 1f; }
+        mChangeSpeed.setImageAlpha((int)(speed * 255));
 
         switch (state.getState()) {
             case PlaybackStateCompat.STATE_PLAYING:
