@@ -16,12 +16,12 @@ public interface TC {
     int MSG_SET_BOOKMARK = C.MSG_CUSTOM_BASE + 2;
 
     // Action to thumbs up a media item
-    String CUSTOM_ACTION_THUMBS_UP = "com.example.android.uamp.THUMBS_UP";
+    String CUSTOM_ACTION_THUMBS_UP = "org.seachordsmen.ttrack.uamp.THUMBS_UP";
     // Action to switch audio mix between full and original
-    String CUSTOM_ACTION_SWITCH_AUDIO_MIX = "com.example.android.uamp.SWITCH_AUDIO_MIX";
+    String CUSTOM_ACTION_SWITCH_AUDIO_MIX = "org.seachordsmen.ttrack.uamp.SWITCH_AUDIO_MIX";
     // Action to set a bookmark at the current play position
-    String CUSTOM_ACTION_SET_BOOKMARK = "com.example.android.uamp.SET_BOOKMARK";
-    String CUSTOM_ACTION_CHANGE_SPEED = "com.example.android.uamp.CHANGE_SPEED";
+    String CUSTOM_ACTION_SET_BOOKMARK = "org.seachordsmen.ttrack.uamp.SET_BOOKMARK";
+    String CUSTOM_ACTION_CHANGE_SPEED = "org.seachordsmen.ttrack.uamp.CHANGE_SPEED";
 
     String METADATA_KEY_PLAYLIST_ID = "org.seachordsmen.ttrack.media.metadata.PLAYLIST_ID";
 }

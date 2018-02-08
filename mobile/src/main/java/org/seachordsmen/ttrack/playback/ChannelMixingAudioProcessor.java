@@ -2,7 +2,7 @@ package org.seachordsmen.ttrack.playback;
 
 import android.util.Log;
 
-import com.example.android.uamp.utils.LogHelper;
+import org.seachordsmen.ttrack.uamp.utils.LogHelper;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.audio.AudioProcessor;
@@ -11,7 +11,6 @@ import org.seachordsmen.ttrack.model.AudioMix;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
 
 /**
  * Created by Gidon on 1/21/2018.

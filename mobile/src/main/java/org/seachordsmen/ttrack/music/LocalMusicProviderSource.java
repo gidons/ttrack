@@ -7,15 +7,14 @@ import android.provider.MediaStore.Audio.Media;
 import android.support.v4.media.MediaMetadataCompat;
 import android.util.Log;
 
-import com.example.android.uamp.model.MusicProviderSource;
-import com.google.common.collect.ImmutableList;
+import org.seachordsmen.ttrack.uamp.model.MusicProviderSource;
+
 import com.google.common.collect.ImmutableMap;
 
 import org.seachordsmen.ttrack.model.TC;
 import org.seachordsmen.ttrack.utils.EntityCursor;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 

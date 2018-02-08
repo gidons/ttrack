@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.seachordsmen.ttrack.ui;
+package org.seachordsmen.ttrack.uamp.ui;
 
 import android.app.Fragment;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -36,16 +35,14 @@ import android.widget.Toast;
 import org.seachordsmen.ttrack.uamp.AlbumArtCache;
 import org.seachordsmen.ttrack.uamp.MusicService;
 import org.seachordsmen.ttrack.uamp.R;
-import org.seachordsmen.ttrack.uamp.ui.FullScreenPlayerActivity;
-import org.seachordsmen.ttrack.uamp.ui.MusicPlayerActivity;
 import org.seachordsmen.ttrack.uamp.utils.LogHelper;
 
 /**
  * A class that shows the Media Queue to the user.
  */
-public class TTrackPlaybackControlsFragment extends Fragment {
+public class PlaybackControlsFragment extends Fragment {
 
-    private static final String TAG = LogHelper.makeLogTag(TTrackPlaybackControlsFragment.class);
+    private static final String TAG = LogHelper.makeLogTag(PlaybackControlsFragment.class);
 
     private ImageButton mPlayPause;
     private TextView mTitle;
@@ -59,7 +56,7 @@ public class TTrackPlaybackControlsFragment extends Fragment {
         @Override
         public void onPlaybackStateChanged(@NonNull PlaybackStateCompat state) {
             LogHelper.d(TAG, "Received playback state change to state ", state.getState());
-            TTrackPlaybackControlsFragment.this.onPlaybackStateChanged(state);
+            PlaybackControlsFragment.this.onPlaybackStateChanged(state);
         }
 
         @Override
@@ -70,7 +67,7 @@ public class TTrackPlaybackControlsFragment extends Fragment {
             LogHelper.d(TAG, "Received metadata state change to mediaId=",
                     metadata.getDescription().getMediaId(),
                     " song=", metadata.getDescription().getTitle());
-            TTrackPlaybackControlsFragment.this.onMetadataChanged(metadata);
+            PlaybackControlsFragment.this.onMetadataChanged(metadata);
         }
     };
 
@@ -90,15 +87,7 @@ public class TTrackPlaybackControlsFragment extends Fragment {
         rootView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getActivity(), FullScreenPlayerActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                MediaControllerCompat controller = MediaControllerCompat.getMediaController(getActivity());
-                MediaMetadataCompat metadata = controller.getMetadata();
-                if (metadata != null) {
-                    intent.putExtra(MusicPlayerActivity.EXTRA_CURRENT_MEDIA_DESCRIPTION,
-                        metadata.getDescription());
-                }
-                startActivity(intent);
+                FullScreenPlayerActivity.startFullScreenActivity(getActivity());
             }
         });
         return rootView;
